@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "AspNetCore.StoplightElements.Demo": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "api-docs",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:50429;http://localhost:50430"
+    }
+  }
+}

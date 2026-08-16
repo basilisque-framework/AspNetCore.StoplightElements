@@ -1,0 +1,46 @@
+﻿/*
+   Copyright 2026 Alexander Stärk
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+using Basilisque.AspNetCore.StoplightElements.Demo.DTO;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+
+namespace Basilisque.AspNetCore.StoplightElements.Demo.Endpoints;
+
+internal class TodoEndpoints
+{
+    public static void MapTodoEndpoints(WebApplication app)
+    {
+        // Sample REST API endpoints for documentation
+        var todoGroup = app.MapGroup("/api/todos").WithTags("Todos");
+
+
+        todoGroup.MapGet("/", () => new[]
+        {
+            new TodoItem(1, "Install Stoplight Elements NuGet Package", true),
+            new TodoItem(2, "Run Demo Application", false),
+            new TodoItem(3, "Enjoy Offline API Documentation", false)
+        })
+            .WithName("GetTodos")
+            .WithSummary("Retrieve all To-Do items");
+
+
+        todoGroup.MapPost("/", (CreateTodoDto input) =>
+            Results.Created($"/api/todos/{Random.Shared.Next(4, 100)}", new TodoItem(4, input.Title, false)))
+            .WithName("CreateTodo")
+            .WithSummary("Create a new To-Do item");
+    }
+}
