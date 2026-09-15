@@ -34,12 +34,14 @@ internal class TodoEndpoints
             new TodoItem(2, "Run Demo Application", false),
             new TodoItem(3, "Enjoy Offline API Documentation", false)
         })
+            .WithGroupName("todo")
             .WithName("GetTodos")
             .WithSummary("Retrieve all To-Do items");
 
 
         todoGroup.MapPost("/", (CreateTodoDto input) =>
             Results.Created($"/api/todos/{Random.Shared.Next(4, 100)}", new TodoItem(4, input.Title, false)))
+            .WithGroupName("todo")
             .WithName("CreateTodo")
             .WithSummary("Create a new To-Do item");
     }

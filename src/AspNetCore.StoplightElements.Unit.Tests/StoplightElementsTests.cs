@@ -83,8 +83,11 @@ public class StoplightElementsTests
         using var factory = new TestWebApplicationFactory(options =>
         {
             options.RoutePrefix = "/custom-api-docs";
-            options.DocumentTitle = "My Custom Docs";
-            options.ApiDescriptionUrl = "/v2/openapi.json";
+            options.Documents.Add(new StoplightElementsDocumentOptions
+            {
+                DocumentTitle = "My Custom Docs",
+                ApiDescriptionUrl = "/v2/openapi.json"
+            });
         });
         var client = factory.CreateClient();
 
@@ -95,6 +98,35 @@ public class StoplightElementsTests
         var html = await response.Content.ReadAsStringAsync();
         await Assert.That(html).Contains("<title>My Custom Docs</title>");
         await Assert.That(html).Contains("apiDescriptionUrl=\"/v2/openapi.json\"");
+    }
+
+    [Test]
+    public async Task Multiple_Documents_Render_Selector_In_Configured_Order()
+    {
+        using var factory = new TestWebApplicationFactory(options =>
+        {
+            options.Documents.Add(new StoplightElementsDocumentOptions
+            {
+                DocumentTitle = "Orders API",
+                ApiDescriptionUrl = "/openapi/orders.json"
+            });
+            options.Documents.Add(new StoplightElementsDocumentOptions
+            {
+                DocumentTitle = "Billing API",
+                ApiDescriptionUrl = "/openapi/billing.json"
+            });
+        });
+
+        var client = factory.CreateClient();
+        var response = await client.GetAsync("/api-docs");
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var html = await response.Content.ReadAsStringAsync();
+        await Assert.That(html).Contains("id=\"stoplight-document-select\"");
+        await Assert.That(html).Contains("<option value=\"0\">Orders API</option><option value=\"1\">Billing API</option>");
+        await Assert.That(html).Contains("<title>Orders API</title>");
+        await Assert.That(html).Contains("apiDescriptionUrl=\"/openapi/orders.json\"");
     }
 
     [Test]

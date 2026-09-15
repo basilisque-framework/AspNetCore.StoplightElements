@@ -35,47 +35,77 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
 
         // Add OpenAPI specification support (built-in .NET OpenAPI generation)
-        builder.Services.AddOpenApi(options =>
+        builder.Services.AddOpenApi("todo", options =>
         {
+            options.ShouldInclude = description => string.Equals(description.GroupName, "todo", StringComparison.OrdinalIgnoreCase);
+
             options.AddDocumentTransformer((document, context, cancellationToken) =>
             {
-                document.Info.Title = "Basilisque Demo API";
-                document.Info.Version = "v1.1";
-                document.Info.Description = "Example API to demonstrate the Stoplight Elements integration.";
+                document.Info.Title = "Basilisque Demo Todo API";
+                document.Info.Version = "v1";
+                document.Info.Description = "Todo API document generated from the demo endpoints.";
+                return Task.CompletedTask;
+            });
+        });
+
+        builder.Services.AddOpenApi("weather", options =>
+        {
+            options.ShouldInclude = description => string.Equals(description.GroupName, "weather", StringComparison.OrdinalIgnoreCase);
+
+            options.AddDocumentTransformer((document, context, cancellationToken) =>
+            {
+                document.Info.Title = "Basilisque Demo Weather API";
+                document.Info.Version = "v1";
+                document.Info.Description = "Weather API document generated from the demo endpoints.";
                 return Task.CompletedTask;
             });
         });
 
         var app = builder.Build();
 
-        // Enable OpenAPI JSON endpoint in development (served at /openapi/v1.json)
+        // Enable OpenAPI JSON endpoints in development (served at /openapi/{documentName}.json)
         if (app.Environment.IsDevelopment())
         {
-            app.MapOpenApi();
+            app.MapOpenApi("/openapi/{documentName}.json");
         }
 
         // Map the Todo API sample endpoints
         TodoEndpoints.MapTodoEndpoints(app);
+        WeatherEndpoints.MapWeatherEndpoints(app);
 
         // Map Stoplight Elements UI endpoint
-        app.MapStoplightElements(options =>
+        if (app.Environment.IsDevelopment())
         {
-            options.DocumentTitle = "Basilisque Demo API Docs";
-
-
-            // example of customizing the main HTML template
-            options.CustomHtmlTemplateHandler = (options, routePrefix, getDefaultHtml) =>
+            app.MapStoplightElements(options =>
             {
-                // get the default HTML template if needed
-                var htmlTemplate = getDefaultHtml();
+                options.Documents.Add(new StoplightElementsDocumentOptions
+                {
+                    Name = "Todo API",
+                    DocumentTitle = "Basilisque Demo Todo API Docs",
+                    ApiDescriptionUrl = "/openapi/todo.json"
+                });
 
-                // Customize the HTML template here if needed
-                //...
+                options.Documents.Add(new StoplightElementsDocumentOptions
+                {
+                    Name = "Weather API",
+                    DocumentTitle = "Basilisque Demo Weather API Docs",
+                    ApiDescriptionUrl = "/openapi/weather.json"
+                });
 
-                // return the customized HTML template or a completely new one
-                return htmlTemplate;
-            };
-        });
+                // example of customizing the main HTML template
+                options.CustomHtmlTemplateHandler = (options, routePrefix, getDefaultHtml) =>
+                {
+                    // get the default HTML template if needed
+                    var htmlTemplate = getDefaultHtml();
+
+                    // Customize the HTML template here if needed
+                    //...
+
+                    // return the customized HTML template or a completely new one
+                    return htmlTemplate;
+                };
+            });
+        }
 
         app.Run();
     }

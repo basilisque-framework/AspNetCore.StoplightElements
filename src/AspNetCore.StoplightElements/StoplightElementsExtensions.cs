@@ -41,6 +41,9 @@ public static class StoplightElementsExtensions
 
             configure?.Invoke(options);
 
+            if (options.Documents.Count == 0)
+                options.Documents.Add(new StoplightElementsDocumentOptions());
+
             // Assembly precedence: options.TargetAssembly -> CallingAssembly
             var targetAssembly = options.TargetAssembly ?? Assembly.GetCallingAssembly();
 
@@ -79,9 +82,9 @@ public static class StoplightElementsExtensions
                 {
                     string html;
                     if (options.CustomHtmlTemplateHandler is null)
-                        html = getDefaultHtml(options, prefix);
+                        html = StoplightElementsDefaultHtmlRenderer.GetDefaultHtml(options, prefix);
                     else
-                        html = options.CustomHtmlTemplateHandler(options, prefix, () => getDefaultHtml(options, prefix));
+                        html = options.CustomHtmlTemplateHandler(options, prefix, () => StoplightElementsDefaultHtmlRenderer.GetDefaultHtml(options, prefix));
 
                     return Results.Content(html, "text/html; charset=utf-8");
                 }).ExcludeFromDescription();
@@ -135,50 +138,4 @@ public static class StoplightElementsExtensions
         var f when f.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) => "text/plain; charset=utf-8",
         _ => "application/octet-stream"
     };
-
-    private static string getDefaultHtml(StoplightElementsOptions options, string routePrefix)
-    {
-        var attributes = options.RenderHtmlAttributes();
-
-        return $$"""
-        <!doctype html>
-        <html lang="en">
-          <head>
-            <meta charset="utf-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-            <title>{{options.DocumentTitle}}</title>
-
-            <link rel="stylesheet" href="{{routePrefix}}/styles.min.css" />
-            <script src="{{routePrefix}}/web-components.min.js" defer></script>
-
-            <style>
-              html, body {
-                height: 100%;
-                width: 100%;
-                margin: 0;
-                padding: 0;
-                overflow: hidden;
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                background-color: #ffffff;
-              }
-
-              @media (prefers-color-scheme: dark) {
-                html, body {
-                  background-color: #0f172a;
-                }
-              }
-
-              elements-api {
-                display: block;
-                height: 100vh;
-                width: 100vw;
-              }
-            </style>
-          </head>
-          <body>
-            <elements-api {{attributes}} />
-          </body>
-        </html>
-        """;
-    }
 }

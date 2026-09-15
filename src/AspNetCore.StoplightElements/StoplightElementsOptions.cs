@@ -39,48 +39,10 @@ public class StoplightElementsOptions
     public string RoutePrefix { get; set; } = "/api-docs";
 
     /// <summary>
-    /// Gets or sets the title displayed in the browser tab.
-    /// Default value is <c>"API Documentation"</c>.
+    /// Gets the collection of documentation entries rendered by this endpoint.
+    /// The first document is used as default in the generated HTML.
     /// </summary>
-    public string DocumentTitle { get; set; } = "API Documentation";
-
-    /// <summary>
-    /// Gets or sets the relative or absolute URL to the OpenAPI or AsyncAPI specification document (JSON or YAML).
-    /// Default value is <c>"/openapi/v1.json"</c>.
-    /// </summary>
-    public string ApiDescriptionUrl { get; set; } = "/openapi/v1.json";
-
-    /// <summary>
-    /// Gets or sets the visual layout of the documentation UI.
-    /// Supported options are <c>"sidebar"</c> and <c>"stacked"</c>. Default value is <c>"sidebar"</c>.
-    /// </summary>
-    public string Layout { get; set; } = "sidebar";
-
-    /// <summary>
-    /// Gets or sets the routing strategy used by the Stoplight Elements web component.
-    /// Supported options are <c>"hash"</c>, <c>"history"</c>, and <c>"memory"</c>. Default value is <c>"hash"</c>.
-    /// </summary>
-    public string Router { get; set; } = "history";
-
-    /// <summary>
-    /// Gets or sets a value indicating whether the "Try It" feature should be hidden in the documentation UI.
-    /// </summary>
-    public bool HideTryIt { get; set; }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether the "Schemas" section should be hidden in the documentation UI.
-    /// </summary>
-    public bool HideSchemas { get; set; }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether to filter out any content which has been marked as internal with 'x-internal'
-    /// </summary>
-    public bool HideInternal { get; set; }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether the "Export" feature should be hidden in the documentation UI.
-    /// </summary>
-    public bool HideExport { get; set; }
+    public IList<StoplightElementsDocumentOptions> Documents { get; } = [];
 
     /// <summary>
     /// Gets or sets the duration in seconds for which static assets should be cached by the browser via the <c>Cache-Control</c> header.
@@ -109,61 +71,4 @@ public class StoplightElementsOptions
     /// </summary>
     public bool MapHtmlEndpoint { get; set; } = true;
 
-    /// <summary>
-    /// Gets or sets a dictionary of additional attributes to be added to the <c>&lt;stoplight-elements&gt;</c> web component.
-    /// </summary>
-    public IDictionary<string, object?> AdditionalAttributes { get; set; } = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-
-    /// <summary>
-    /// Adds an additional attribute to the <c>&lt;stoplight-elements&gt;</c> web component.
-    /// </summary>
-    public StoplightElementsOptions AddAttribute(string name, object? value)
-    {
-        AdditionalAttributes[name] = value;
-        return this;
-    }
-
-    /// <summary>
-    /// Renders all set options neatly as HTML attributes.
-    /// </summary>
-    public string RenderHtmlAttributes()
-    {
-        var attributes = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["apiDescriptionUrl"] = ApiDescriptionUrl,
-            ["router"] = Router,
-            ["layout"] = Layout,
-            ["hideTryIt"] = HideTryIt ? true : null,
-            ["hideSchemas"] = HideSchemas ? true : null,
-            ["hideInternal"] = HideInternal ? true : null,
-            ["hideExport"] = HideExport ? true : null,
-        };
-
-        // Override with any additional attributes provided by the user
-        foreach (var (key, value) in AdditionalAttributes)
-        {
-            attributes[key] = value;
-        }
-
-        var sb = new System.Text.StringBuilder();
-
-        foreach (var (key, val) in attributes)
-        {
-            if (val is null) continue;
-
-            // bool values: only render if true (prevents the hideTryIt="false" issue that hides the try feature just because the attribute is present)
-            if (val is bool boolVal)
-            {
-                if (boolVal)
-                    sb.Append($" {key}=\"true\"");
-            }
-            else
-            {
-                var encoded = System.Net.WebUtility.HtmlEncode(val.ToString());
-                sb.Append($" {key}=\"{encoded}\"");
-            }
-        }
-
-        return sb.ToString().TrimStart();
-    }
 }
