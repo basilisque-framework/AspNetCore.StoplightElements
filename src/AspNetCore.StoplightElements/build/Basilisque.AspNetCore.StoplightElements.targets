@@ -158,9 +158,22 @@
       Command="curl -fL --retry 3 --retry-delay 2 $(_StoplightElementsCurlAuthArgs) -o &quot;$(StoplightTarballFilePath)&quot; &quot;$(_StoplightElementsResolvedTarballUrl)&quot;"
       Condition="'$(StoplightElementsAssetAcquisitionMode)' == 'NpmTarball' and '$(StoplightElementsAuthMode)' != 'None' and !Exists('$(StoplightTarballExtractedMarkerPath)')" />
 
+    <RemoveDir
+      Directories="$(StoplightExtractedPackageDir)"
+      Condition="'$(StoplightElementsAssetAcquisitionMode)' == 'NpmTarball' and !Exists('$(StoplightTarballExtractedMarkerPath)') and Exists('$(StoplightExtractedPackageDir)')" />
+
     <Exec
       Command="$(StoplightElementsTarExecutable) -xzf &quot;$(StoplightTarballFilePath)&quot; -C &quot;$(StoplightCacheDir)&quot;"
+      IgnoreExitCode="true"
       Condition="'$(StoplightElementsAssetAcquisitionMode)' == 'NpmTarball' and !Exists('$(StoplightTarballExtractedMarkerPath)')" />
+
+    <ItemGroup Condition="'$(StoplightElementsAssetAcquisitionMode)' == 'NpmTarball' and !Exists('$(StoplightTarballExtractedMarkerPath)')">
+      <_MissingExtractedStoplightAsset Include="@(StoplightAsset)" Condition="!Exists('$(StoplightExtractedPackageDir)%(StoplightAsset.Identity)')" />
+    </ItemGroup>
+
+    <Error
+      Text="Failed to extract required Stoplight assets from npm tarball. Missing assets: @(_MissingExtractedStoplightAsset, ', ')."
+      Condition="'$(StoplightElementsAssetAcquisitionMode)' == 'NpmTarball' and !Exists('$(StoplightTarballExtractedMarkerPath)') and '@(_MissingExtractedStoplightAsset)' != ''" />
 
     <WriteLinesToFile
       File="$(StoplightTarballExtractedMarkerPath)"

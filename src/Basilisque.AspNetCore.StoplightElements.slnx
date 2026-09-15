@@ -20,6 +20,7 @@
     <File Path="Directory.Packages.props" />
   </Folder>
   <Project Path="AspNetCore.StoplightElements.Demo/AspNetCore.StoplightElements.Demo.csproj" Id="f1c89687-7502-489e-9ee7-86c4f4fb815a" />
+  <Project Path="AspNetCore.StoplightElements.NpmJsDemo/AspNetCore.StoplightElements.NpmJsDemo.csproj" />
   <Project Path="AspNetCore.StoplightElements.Unit.Tests/AspNetCore.StoplightElements.Unit.Tests.csproj" />
   <Project Path="AspNetCore.StoplightElements/AspNetCore.StoplightElements.csproj" />
 </Solution>
