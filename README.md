@@ -96,63 +96,109 @@ To guarantee reproducible, deterministic production builds, you can pin a specif
 
 ### Basic Configuration
 
-You can customize the endpoint route, page title, layout, and Stoplight features using `StoplightElementsOptions`:
+`StoplightElementsOptions` contains global endpoint settings, while document-specific `<elements-api>` settings are configured in the `Documents` property.
 
 ```csharp
 app.MapStoplightElements(options =>
 {
-    options.DocumentTitle = "My Enterprise API Documentation";
-    options.ApiDescriptionUrl = "/openapi/v1.json"; // Path to your OpenAPI JSON/YAML
-    options.Layout = "sidebar";                     // "sidebar" or "stacked"
-    options.Router = "history";                     // "history", "hash", or "memory"
-    options.HideTryIt = false;                      // Show/hide interactive API console
-    options.HideSchemas = false;                    // Show/hide schema definitions
-    options.HideExport = false;                     // Show/hide export specification button
+    options.Documents.Add(new StoplightElementsDocumentOptions
+    {
+        Name = "Main API",
+        DocumentTitle = "My Enterprise API Documentation",
+        ApiDescriptionUrl = "/openapi/v1.json",  // Path to your OpenAPI JSON/YAML
+        Layout = "sidebar",                      // "sidebar" or "stacked"
+        Router = "history",                      // "history", "hash", or "memory"
+        HideTryIt = false,
+        HideSchemas = false,
+        HideExport = false
+    });
 });
 ```
 
-### Multiple API Documentation Endpoints
+### Multiple API documents in one UI
 
-To host multiple distinct API documentation pages within the same project, call `MapStoplightElements` with different route prefixes:
+Configure multiple entries in `Documents`. If more than one document is configured, the generated HTML automatically shows a selector.
 
 ```csharp
-// REST API v1
 app.MapStoplightElements(options =>
 {
-    options.RoutePrefix = "api-docs/v1";
-    options.DocumentTitle = "Customer API v1";
-    options.ApiDescriptionUrl = "/openapi/v1.json";
-});
 
-// REST API v2
-app.MapStoplightElements(options =>
-{
-    options.RoutePrefix = "api-docs/v2";
-    options.DocumentTitle = "Customer API v2";
-    options.ApiDescriptionUrl = "/openapi/v2.json";
-});
+    options.Documents.Add(new StoplightElementsDocumentOptions
+    {
+        Name = "Customer API v1",
+        DocumentTitle = "Customer API v1 Docs",
+        ApiDescriptionUrl = "/openapi/v1.json"
+    });
 
-// Event-driven Architecture (AsyncAPI)
-app.MapStoplightElements(options =>
-{
-    options.RoutePrefix = "api-docs/events";
-    options.DocumentTitle = "Event Bus Specification";
-    options.ApiDescriptionUrl = "/asyncapi/v1.json";
+    options.Documents.Add(new StoplightElementsDocumentOptions
+    {
+        Name = "Customer API v2",
+        DocumentTitle = "Customer API v2 Docs",
+        ApiDescriptionUrl = "/openapi/v2.json"
+    });
 });
 ```
-This provides the respective Stoplight Elements instance under the provided route prefix. Please note that this does not provide the respective API description URLs.
+
+Behavior:
+- `Documents.Count == 1`: minimal HTML (no selector)
+- `Documents.Count > 1`: selector is shown
+- order is preserved
+- first document is displayed by default
 
 ### Advanced HTML Attribute Customization
 
-If Stoplight introduces new HTML attributes or you need to supply specialized configuration options (such as custom proxies or CORS policies), use `AddAttribute`:
+If Stoplight introduces new HTML attributes or you need to supply specialized configuration options (such as custom proxies or CORS policies), use `AddAttribute` on a `StoplightElementsDocumentOptions` entry:
 
 ```csharp
 app.MapStoplightElements(options =>
 {
-    options.AddAttribute("tryItCredentialsPolicy", "include")
+    options.Documents[0]
+           .AddAttribute("tryItCredentialsPolicy", "include")
            .AddAttribute("corsProxy", "https://proxy.example.com")
            .AddAttribute("logo", "https://example.com/logo.png");
 });
+```
+
+## Corporate registries / Artifactory
+
+By default assets are downloaded from unpkg (`DirectFiles` mode). You can switch to npm tarball mode for corporate proxies.
+
+```xml
+<PropertyGroup>
+  <StoplightElementsAssetAcquisitionMode>NpmTarball</StoplightElementsAssetAcquisitionMode>
+  <StoplightElementsAssetBaseUrl>https://jfrog.yourserver.local/artifactory/api/npm/npmjs.npm.proxy-cache/</StoplightElementsAssetBaseUrl>
+  <StoplightElementsVersion>9.0.0</StoplightElementsVersion>
+</PropertyGroup>
+```
+
+Notes:
+- In `NpmTarball` mode, generated tarball URLs require an exact version (for example `9.0.0`), unless `StoplightElementsNpmTarballUrl` is explicitly set.
+- Supported acquisition modes: `DirectFiles` (default) and `NpmTarball`.
+
+### Authenticated downloads (for CI/CD)
+
+Auth can be configured via MSBuild properties or environment variables.
+
+Supported modes:
+- `None`
+- `Bearer`
+- `Basic`
+- `ApiKey`
+
+Environment variables:
+- `STOPLIGHT_AUTH_MODE`
+- `STOPLIGHT_AUTH_TOKEN`
+- `STOPLIGHT_AUTH_USER`
+- `STOPLIGHT_AUTH_PASSWORD`
+- `STOPLIGHT_AUTH_HEADER`
+
+Example (GitLab masked/hidden variables):
+
+```yaml
+variables:
+  STOPLIGHT_AUTH_MODE: "ApiKey"
+  STOPLIGHT_AUTH_HEADER: "X-JFrog-Art-Api"
+  STOPLIGHT_AUTH_TOKEN: "$JFROG_API_KEY"
 ```
 
 ### Embedding in Custom Web Pages (Asset-Only Mode - Stoplight Elements API component without the main HTML page of this project)

@@ -24,6 +24,68 @@
         - Exact version (e.g., "8.0.0": locks down to a specific release)
     -->
     <StoplightElementsVersion Condition="'$(StoplightElementsVersion)' == ''">latest</StoplightElementsVersion>
+
+    <!--
+      Base URL used to fetch Stoplight assets.
+      Override this in consuming projects to use an internal npm proxy (e.g. Artifactory).
+      Example:
+        <StoplightElementsAssetBaseUrl>https://artifactory.company.tld/api/npm/npm-proxy/</StoplightElementsAssetBaseUrl>
+    -->
+    <StoplightElementsAssetBaseUrl Condition="'$(StoplightElementsAssetBaseUrl)' == ''">https://unpkg.com/</StoplightElementsAssetBaseUrl>
+
+    <!-- NPM package path used in the generated asset URLs. -->
+    <StoplightElementsPackagePath Condition="'$(StoplightElementsPackagePath)' == ''">@stoplight/elements</StoplightElementsPackagePath>
+
+    <!--
+      Asset acquisition mode:
+        - DirectFiles (default): download individual files from StoplightElementsAssetBaseUrl
+        - NpmTarball: download one .tgz package and extract assets from it
+    -->
+    <StoplightElementsAssetAcquisitionMode Condition="'$(StoplightElementsAssetAcquisitionMode)' == ''">DirectFiles</StoplightElementsAssetAcquisitionMode>
+
+    <!--
+      Optional auth mode for downloading assets from protected registries.
+      Supported values: None (default), Bearer, Basic, ApiKey
+      Values can also be provided via environment variables:
+        STOPLIGHT_AUTH_MODE
+        STOPLIGHT_AUTH_TOKEN
+        STOPLIGHT_AUTH_USER
+        STOPLIGHT_AUTH_PASSWORD
+        STOPLIGHT_AUTH_HEADER
+    -->
+    <StoplightElementsAuthMode Condition="'$(StoplightElementsAuthMode)' == '' and '$(STOPLIGHT_AUTH_MODE)' != ''">$(STOPLIGHT_AUTH_MODE)</StoplightElementsAuthMode>
+    <StoplightElementsAuthMode Condition="'$(StoplightElementsAuthMode)' == '' and '$(STOPLIGHT_AUTH_TOKEN)' != ''">Bearer</StoplightElementsAuthMode>
+    <StoplightElementsAuthMode Condition="'$(StoplightElementsAuthMode)' == '' and '$(StoplightElementsAuthToken)' != ''">Bearer</StoplightElementsAuthMode>
+    <StoplightElementsAuthMode Condition="'$(StoplightElementsAuthMode)' == ''">None</StoplightElementsAuthMode>
+    <StoplightElementsAuthToken Condition="'$(StoplightElementsAuthToken)' == '' and '$(STOPLIGHT_AUTH_TOKEN)' != ''">$(STOPLIGHT_AUTH_TOKEN)</StoplightElementsAuthToken>
+    <StoplightElementsAuthUser Condition="'$(StoplightElementsAuthUser)' == '' and '$(STOPLIGHT_AUTH_USER)' != ''">$(STOPLIGHT_AUTH_USER)</StoplightElementsAuthUser>
+    <StoplightElementsAuthPassword Condition="'$(StoplightElementsAuthPassword)' == '' and '$(STOPLIGHT_AUTH_PASSWORD)' != ''">$(STOPLIGHT_AUTH_PASSWORD)</StoplightElementsAuthPassword>
+    <StoplightElementsAuthHeaderName Condition="'$(StoplightElementsAuthHeaderName)' == '' and '$(STOPLIGHT_AUTH_HEADER)' != ''">$(STOPLIGHT_AUTH_HEADER)</StoplightElementsAuthHeaderName>
+
+    <!--
+      Optional explicit tarball URL used in NpmTarball mode.
+      If empty, a default URL is generated from base URL + package path + version.
+    -->
+    <StoplightElementsNpmTarballUrl Condition="'$(StoplightElementsNpmTarballUrl)' == ''"></StoplightElementsNpmTarballUrl>
+
+    <!-- Tar executable used to extract .tgz in NpmTarball mode. -->
+    <StoplightElementsTarExecutable Condition="'$(StoplightElementsTarExecutable)' == ''">tar</StoplightElementsTarExecutable>
+
+    <!-- Package file name part used by the default tarball URL pattern. -->
+    <_StoplightElementsPackageFileName>$([System.Text.RegularExpressions.Regex]::Replace('$(StoplightElementsPackagePath)', '^.*/', ''))</_StoplightElementsPackageFileName>
+
+    <!-- Normalized base URL with exactly one trailing slash. -->
+    <_StoplightElementsAssetBaseUrlNormalized>$([System.String]::Copy('$(StoplightElementsAssetBaseUrl)').TrimEnd('/'))/</_StoplightElementsAssetBaseUrlNormalized>
+
+    <_StoplightElementsResolvedTarballUrl Condition="'$(StoplightElementsNpmTarballUrl)' != ''">$(StoplightElementsNpmTarballUrl)</_StoplightElementsResolvedTarballUrl>
+    <_StoplightElementsResolvedTarballUrl Condition="'$(_StoplightElementsResolvedTarballUrl)' == ''">$(_StoplightElementsAssetBaseUrlNormalized)$(StoplightElementsPackagePath)/-/$(_StoplightElementsPackageFileName)-$(StoplightElementsVersion).tgz</_StoplightElementsResolvedTarballUrl>
+
+    <_StoplightElementsIsExactVersion>$([System.Text.RegularExpressions.Regex]::IsMatch('$(StoplightElementsVersion)', '^\d+\.\d+\.\d+([-.][0-9A-Za-z.-]+)?$'))</_StoplightElementsIsExactVersion>
+
+    <_StoplightElementsCurlAuthArgs Condition="'$(StoplightElementsAuthMode)' == 'None'"></_StoplightElementsCurlAuthArgs>
+    <_StoplightElementsCurlAuthArgs Condition="'$(StoplightElementsAuthMode)' == 'Bearer'">-H &quot;Authorization: Bearer $(StoplightElementsAuthToken)&quot;</_StoplightElementsCurlAuthArgs>
+    <_StoplightElementsCurlAuthArgs Condition="'$(StoplightElementsAuthMode)' == 'ApiKey'">-H &quot;$(StoplightElementsAuthHeaderName): $(StoplightElementsAuthToken)&quot;</_StoplightElementsCurlAuthArgs>
+    <_StoplightElementsCurlAuthArgs Condition="'$(StoplightElementsAuthMode)' == 'Basic'">-u &quot;$(StoplightElementsAuthUser):$(StoplightElementsAuthPassword)&quot;</_StoplightElementsCurlAuthArgs>
   </PropertyGroup>
 
   <!-- Define default assets list if not overridden or populated by the target project -->
@@ -37,21 +99,85 @@
     <PropertyGroup>
       <!-- Asset cache directory inside obj/ scoped to the selected version specifier -->
       <StoplightCacheDir>$(IntermediateOutputPath)stoplight-assets\$(StoplightElementsVersion)\</StoplightCacheDir>
+      <StoplightTarballFilePath>$(StoplightCacheDir)stoplight-elements.tgz</StoplightTarballFilePath>
+      <StoplightTarballExtractedMarkerPath>$(StoplightCacheDir).tarball.extracted</StoplightTarballExtractedMarkerPath>
+      <StoplightExtractedPackageDir>$(StoplightCacheDir)package\</StoplightExtractedPackageDir>
     </PropertyGroup>
     
     <MakeDir Directories="$(StoplightCacheDir)" />
 
-    <!-- Download each configured asset if not already cached in obj/ -->
+    <Error Text="StoplightElementsAuthMode must be one of: None, Bearer, Basic, ApiKey."
+           Condition="'$(StoplightElementsAuthMode)' != 'None' and '$(StoplightElementsAuthMode)' != 'Bearer' and '$(StoplightElementsAuthMode)' != 'Basic' and '$(StoplightElementsAuthMode)' != 'ApiKey'" />
+
+    <Error Text="StoplightElementsAuthToken is required when StoplightElementsAuthMode is Bearer."
+           Condition="'$(StoplightElementsAuthMode)' == 'Bearer' and '$(StoplightElementsAuthToken)' == ''" />
+
+    <Error Text="StoplightElementsAuthToken is required when StoplightElementsAuthMode is ApiKey."
+           Condition="'$(StoplightElementsAuthMode)' == 'ApiKey' and '$(StoplightElementsAuthToken)' == ''" />
+
+    <Error Text="StoplightElementsAuthHeaderName is required when StoplightElementsAuthMode is ApiKey (example: X-Api-Key)."
+           Condition="'$(StoplightElementsAuthMode)' == 'ApiKey' and '$(StoplightElementsAuthHeaderName)' == ''" />
+
+    <Error Text="StoplightElementsAuthUser and StoplightElementsAuthPassword are required when StoplightElementsAuthMode is Basic."
+           Condition="'$(StoplightElementsAuthMode)' == 'Basic' and ('$(StoplightElementsAuthUser)' == '' or '$(StoplightElementsAuthPassword)' == '')" />
+
+    <Error Text="NpmTarball mode with default URL generation requires an exact StoplightElementsVersion (for example 8.9.0). Values like latest, 8, 8.9, ^8, or ~8.9 are not supported unless StoplightElementsNpmTarballUrl is set explicitly."
+           Condition="'$(StoplightElementsAssetAcquisitionMode)' == 'NpmTarball' and '$(StoplightElementsNpmTarballUrl)' == '' and '$(_StoplightElementsIsExactVersion)' != 'True'" />
+
+    <!--
+      Download each configured asset if not already cached in obj/.
+      URL format:
+        {StoplightElementsAssetBaseUrl}{StoplightElementsPackagePath}@{StoplightElementsVersion}/{asset}
+      You can override this per asset by setting StoplightAsset metadata SourceUrl.
+    -->
     <DownloadFile
-      SourceUrl="https://unpkg.com/@stoplight/elements@$(StoplightElementsVersion)/%(StoplightAsset.Identity)"
+      SourceUrl="%(StoplightAsset.SourceUrl)"
       DestinationFolder="$(StoplightCacheDir)"
-      Condition="!Exists('$(StoplightCacheDir)%(StoplightAsset.Identity)')" />
+      Condition="'$(StoplightElementsAssetAcquisitionMode)' == 'DirectFiles' and '$(StoplightElementsAuthMode)' == 'None' and '%(StoplightAsset.SourceUrl)' != '' and !Exists('$(StoplightCacheDir)%(StoplightAsset.Identity)')" />
+
+    <DownloadFile
+      SourceUrl="$(_StoplightElementsAssetBaseUrlNormalized)$(StoplightElementsPackagePath)@$(StoplightElementsVersion)/%(StoplightAsset.Identity)"
+      DestinationFolder="$(StoplightCacheDir)"
+      Condition="'$(StoplightElementsAssetAcquisitionMode)' == 'DirectFiles' and '$(StoplightElementsAuthMode)' == 'None' and '%(StoplightAsset.SourceUrl)' == '' and !Exists('$(StoplightCacheDir)%(StoplightAsset.Identity)')" />
+
+    <Exec
+      Command="curl -fL --retry 3 --retry-delay 2 $(_StoplightElementsCurlAuthArgs) -o &quot;$(StoplightCacheDir)%(StoplightAsset.Identity)&quot; &quot;%(StoplightAsset.SourceUrl)&quot;"
+      Condition="'$(StoplightElementsAssetAcquisitionMode)' == 'DirectFiles' and '$(StoplightElementsAuthMode)' != 'None' and '%(StoplightAsset.SourceUrl)' != '' and !Exists('$(StoplightCacheDir)%(StoplightAsset.Identity)')" />
+
+    <Exec
+      Command="curl -fL --retry 3 --retry-delay 2 $(_StoplightElementsCurlAuthArgs) -o &quot;$(StoplightCacheDir)%(StoplightAsset.Identity)&quot; &quot;$(_StoplightElementsAssetBaseUrlNormalized)$(StoplightElementsPackagePath)@$(StoplightElementsVersion)/%(StoplightAsset.Identity)&quot;"
+      Condition="'$(StoplightElementsAssetAcquisitionMode)' == 'DirectFiles' and '$(StoplightElementsAuthMode)' != 'None' and '%(StoplightAsset.SourceUrl)' == '' and !Exists('$(StoplightCacheDir)%(StoplightAsset.Identity)')" />
+
+    <DownloadFile
+      SourceUrl="$(_StoplightElementsResolvedTarballUrl)"
+      DestinationFolder="$(StoplightCacheDir)"
+      DestinationFileName="stoplight-elements.tgz"
+      Condition="'$(StoplightElementsAssetAcquisitionMode)' == 'NpmTarball' and '$(StoplightElementsAuthMode)' == 'None' and !Exists('$(StoplightTarballExtractedMarkerPath)')" />
+
+    <Exec
+      Command="curl -fL --retry 3 --retry-delay 2 $(_StoplightElementsCurlAuthArgs) -o &quot;$(StoplightTarballFilePath)&quot; &quot;$(_StoplightElementsResolvedTarballUrl)&quot;"
+      Condition="'$(StoplightElementsAssetAcquisitionMode)' == 'NpmTarball' and '$(StoplightElementsAuthMode)' != 'None' and !Exists('$(StoplightTarballExtractedMarkerPath)')" />
+
+    <Exec
+      Command="$(StoplightElementsTarExecutable) -xzf &quot;$(StoplightTarballFilePath)&quot; -C &quot;$(StoplightCacheDir)&quot;"
+      Condition="'$(StoplightElementsAssetAcquisitionMode)' == 'NpmTarball' and !Exists('$(StoplightTarballExtractedMarkerPath)')" />
+
+    <WriteLinesToFile
+      File="$(StoplightTarballExtractedMarkerPath)"
+      Lines="extracted"
+      Overwrite="true"
+      Condition="'$(StoplightElementsAssetAcquisitionMode)' == 'NpmTarball' and !Exists('$(StoplightTarballExtractedMarkerPath)')" />
 
     <!-- Dynamically embed all downloaded assets into the target assembly -->
     <ItemGroup>
-      <EmbeddedResource Include="$(StoplightCacheDir)%(StoplightAsset.Identity)">
+      <EmbeddedResource Include="$(StoplightCacheDir)%(StoplightAsset.Identity)" Condition="'$(StoplightElementsAssetAcquisitionMode)' == 'DirectFiles'">
+        <LogicalName>StoplightAssets.%(StoplightAsset.Identity)</LogicalName>
+      </EmbeddedResource>
+
+      <EmbeddedResource Include="$(StoplightExtractedPackageDir)%(StoplightAsset.Identity)" Condition="'$(StoplightElementsAssetAcquisitionMode)' == 'NpmTarball'">
         <LogicalName>StoplightAssets.%(StoplightAsset.Identity)</LogicalName>
       </EmbeddedResource>
     </ItemGroup>
   </Target>
+
 </Project>
