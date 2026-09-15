@@ -99,6 +99,7 @@
     <PropertyGroup>
       <!-- Asset cache directory inside obj/ scoped to the selected version specifier -->
       <StoplightCacheDir>$(IntermediateOutputPath)stoplight-assets\$(StoplightElementsVersion)\</StoplightCacheDir>
+      <StoplightCacheDirForCommand>$([System.Text.RegularExpressions.Regex]::Replace('$(StoplightCacheDir)', '[\\/]+$', ''))</StoplightCacheDirForCommand>
       <StoplightTarballFilePath>$(StoplightCacheDir)stoplight-elements.tgz</StoplightTarballFilePath>
       <StoplightTarballExtractedMarkerPath>$(StoplightCacheDir).tarball.extracted</StoplightTarballExtractedMarkerPath>
       <StoplightExtractedPackageDir>$(StoplightCacheDir)package\</StoplightExtractedPackageDir>
@@ -163,7 +164,7 @@
       Condition="'$(StoplightElementsAssetAcquisitionMode)' == 'NpmTarball' and !Exists('$(StoplightTarballExtractedMarkerPath)') and Exists('$(StoplightExtractedPackageDir)')" />
 
     <Exec
-      Command="$(StoplightElementsTarExecutable) -xzf &quot;$(StoplightTarballFilePath)&quot; -C &quot;$(StoplightCacheDir)&quot;"
+      Command="$(StoplightElementsTarExecutable) -xzf &quot;$(StoplightTarballFilePath)&quot; -C &quot;$(StoplightCacheDirForCommand)&quot;"
       IgnoreExitCode="true"
       Condition="'$(StoplightElementsAssetAcquisitionMode)' == 'NpmTarball' and !Exists('$(StoplightTarballExtractedMarkerPath)')" />
 
