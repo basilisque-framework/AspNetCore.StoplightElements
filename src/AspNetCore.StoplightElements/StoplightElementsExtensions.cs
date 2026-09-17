@@ -80,17 +80,27 @@ public static class StoplightElementsExtensions
             {
                 endpoints.MapGet(prefix, () =>
                 {
-                    string html;
-                    if (options.CustomHtmlTemplateHandler is null)
-                        html = StoplightElementsDefaultHtmlRenderer.GetDefaultHtml(options, prefix);
-                    else
-                        html = options.CustomHtmlTemplateHandler(options, prefix, () => StoplightElementsDefaultHtmlRenderer.GetDefaultHtml(options, prefix));
+                    return serveDocumentationHtml(options, prefix);
+                }).ExcludeFromDescription();
 
-                    return Results.Content(html, "text/html; charset=utf-8");
+                endpoints.MapFallback($"{prefix}/{{**path:nonfile}}", () =>
+                {
+                    return serveDocumentationHtml(options, prefix);
                 }).ExcludeFromDescription();
             }
 
             return endpoints;
+        }
+
+        private static IResult serveDocumentationHtml(StoplightElementsOptions options, string prefix)
+        {
+            string html;
+            if (options.CustomHtmlTemplateHandler is null)
+                html = StoplightElementsDefaultHtmlRenderer.GetDefaultHtml(options, prefix);
+            else
+                html = options.CustomHtmlTemplateHandler(options, prefix, () => StoplightElementsDefaultHtmlRenderer.GetDefaultHtml(options, prefix));
+
+            return Results.Content(html, "text/html; charset=utf-8");
         }
     }
 
