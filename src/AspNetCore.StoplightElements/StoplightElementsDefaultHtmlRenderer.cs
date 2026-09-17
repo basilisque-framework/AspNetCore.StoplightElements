@@ -54,10 +54,18 @@ internal static class StoplightElementsDefaultHtmlRenderer
     {
         var selectorOptions = buildSelectorOptions(documents);
 
-        var documentPayload = documents.Select(document => new
+        var documentPayload = documents.Select(document =>
         {
-            documentTitle = document.DocumentTitle,
-            attributes = document.GetHtmlAttributeMap()
+            var a = document.GetHtmlAttributeMap();
+
+            if (!a.ContainsKey("basePath"))
+                a["basePath"] = routePrefix;
+
+            return new
+            {
+                documentTitle = document.DocumentTitle,
+                attributes = a
+            };
         });
 
         var documentsJson = JsonSerializer.Serialize(documentPayload);
@@ -170,6 +178,9 @@ internal static class StoplightElementsDefaultHtmlRenderer
     private static string getCommonDocumentHtml(StoplightElementsDocumentOptions document, string routePrefix)
     {
         var attributes = document.RenderHtmlAttributes();
+
+        if (!string.IsNullOrWhiteSpace(routePrefix) && !attributes.Contains("basePath="))
+            attributes += $" basePath=\"{routePrefix}\"";
 
         return $$"""
         <!doctype html>
