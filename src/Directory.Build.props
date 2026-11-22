@@ -16,7 +16,7 @@
 <Project>
   <!-- general build properties -->
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
     <UseArtifactsOutput>true</UseArtifactsOutput>
     <PackageId>Basilisque.$(MSBuildProjectName)</PackageId>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>

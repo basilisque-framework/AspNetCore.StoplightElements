@@ -32,6 +32,8 @@ It automatically manages frontend static assets (`JS` / `CSS`) via MSBuild embed
 - **Asset-Only Mode:** Disable the standalone HTML endpoint to host `<elements-api>` directly inside your custom site like Blazor, Razor Pages, or MVC layouts.
 
 ## Installation
+The package targets ASP.NET Core on .NET 10 and .NET 11. Building this repository requires the .NET 11 SDK; running the tests for both target frameworks also requires the ASP.NET Core 10 runtime.
+
 Install the package via the .NET CLI:
 ```bash
 dotnet add package Basilisque.AspNetCore.StoplightElements

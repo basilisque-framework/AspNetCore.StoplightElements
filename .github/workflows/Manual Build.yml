@@ -38,6 +38,9 @@ jobs:
     with:
       basBuildType: ${{ inputs.basBuildTypeChoice }}
       projectOrSolution: 'src/Basilisque.AspNetCore.StoplightElements.slnx'
+      dotNetVersion: |
+        10.0.x
+        11.0.x
       # sonarProjectKey: 'basilisque-framework_AspNetCore.StoplightElements'
       # sonarOrganization: 'basilisque-framework'
       runDotnetPack: true
