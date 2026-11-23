@@ -15,7 +15,7 @@
 -->
 <Project>
   <PropertyGroup>
-    <!-- 
+    <!--
       Default version string if not specified in the target project.
       Supported values:
         - "latest" (default: resolves to the newest available release)
@@ -104,7 +104,7 @@
       <StoplightTarballExtractedMarkerPath>$(StoplightCacheDir).tarball.extracted</StoplightTarballExtractedMarkerPath>
       <StoplightExtractedPackageDir>$(StoplightCacheDir)package\</StoplightExtractedPackageDir>
     </PropertyGroup>
-    
+
     <MakeDir Directories="$(StoplightCacheDir)" />
 
     <Error Text="StoplightElementsAuthMode must be one of: None, Bearer, Basic, ApiKey."

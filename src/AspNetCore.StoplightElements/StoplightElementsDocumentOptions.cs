@@ -1,4 +1,4 @@
-/*
+﻿/*
    Copyright 2026 Alexander Stärk
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -123,7 +123,8 @@ public class StoplightElementsDocumentOptions
 
         foreach (var (key, val) in attributes)
         {
-            if (val is null) continue;
+            if (val is null)
+                continue;
 
             // bool values: only render if true (prevents the hideTryIt="false" issue that hides the try feature just because the attribute is present)
             if (val is bool boolVal)

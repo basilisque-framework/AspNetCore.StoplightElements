@@ -56,7 +56,7 @@ public static class StoplightElementsExtensions
 
             foreach (var fullResourceName in resourceNames)
             {
-                var fileName = fullResourceName.Substring(AssetPrefix.Length);
+                var fileName = fullResourceName[AssetPrefix.Length..];
                 var route = $"{prefix}/{fileName}";
                 var contentType = getContentType(fileName);
 

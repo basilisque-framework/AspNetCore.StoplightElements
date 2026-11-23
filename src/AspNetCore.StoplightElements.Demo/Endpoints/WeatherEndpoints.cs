@@ -1,4 +1,4 @@
-/*
+﻿/*
    Copyright 2026 Alexander Stärk
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@ namespace Basilisque.AspNetCore.StoplightElements.Demo.Endpoints;
 
 internal static class WeatherEndpoints
 {
-    private static readonly string[] Summaries =
+    private static readonly string[] _summaries =
     [
         "Freezing",
         "Bracing",
@@ -44,7 +44,7 @@ internal static class WeatherEndpoints
                 new WeatherForecastDto(
                     DateOnly.FromDateTime(DateTime.UtcNow.AddDays(index)),
                     Random.Shared.Next(-10, 36),
-                    Summaries[Random.Shared.Next(Summaries.Length)])).ToArray())
+                    _summaries[Random.Shared.Next(_summaries.Length)])).ToArray())
             .WithGroupName("weather")
             .WithName("GetWeatherForecast")
             .WithSummary("Retrieve a 5-day weather forecast");

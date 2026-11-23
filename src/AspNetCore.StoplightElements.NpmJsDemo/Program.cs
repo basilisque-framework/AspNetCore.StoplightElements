@@ -1,4 +1,4 @@
-/*
+﻿/*
    Copyright 2026 Alexander Stärk
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,47 +20,55 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-var builder = WebApplication.CreateBuilder(args);
+namespace Basilisque.AspNetCore.StoplightElements.NpmJsDemo;
 
-builder.Services.AddOpenApi("npmjs-demo", options =>
+internal static class Program
 {
-    options.ShouldInclude = description =>
-        string.Equals(description.GroupName, "npmjs-demo", StringComparison.OrdinalIgnoreCase);
-
-    options.AddDocumentTransformer((document, context, cancellationToken) =>
+    public static void Main(string[] args)
     {
-        document.Info.Title = "Stoplight npmjs Demo API";
-        document.Info.Version = "v1";
-        document.Info.Description = "Demonstrates Stoplight asset download via npmjs.org tarball settings.";
-        return Task.CompletedTask;
-    });
-});
+        var builder = WebApplication.CreateBuilder(args);
 
-var app = builder.Build();
-
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi("/openapi/{documentName}.json");
-}
-
-app.MapGet("/api/ping", () => Results.Ok(new { Message = "pong", Utc = DateTime.UtcNow }))
-    .WithGroupName("npmjs-demo")
-    .WithName("Ping")
-    .WithSummary("Simple ping endpoint for OpenAPI demo");
-
-if (app.Environment.IsDevelopment())
-{
-    app.MapStoplightElements(options =>
-    {
-        options.RoutePrefix = "/api-docs";
-        options.Documents.Clear();
-        options.Documents.Add(new StoplightElementsDocumentOptions
+        builder.Services.AddOpenApi("npmjs-demo", options =>
         {
-            Name = "npmjs demo",
-            DocumentTitle = "Stoplight npmjs Demo Docs",
-            ApiDescriptionUrl = "/openapi/npmjs-demo.json"
-        });
-    });
-}
+            options.ShouldInclude = description =>
+                string.Equals(description.GroupName, "npmjs-demo", StringComparison.OrdinalIgnoreCase);
 
-app.Run();
+            options.AddDocumentTransformer((document, context, cancellationToken) =>
+            {
+                document.Info.Title = "Stoplight npmjs Demo API";
+                document.Info.Version = "v1";
+                document.Info.Description = "Demonstrates Stoplight asset download via npmjs.org tarball settings.";
+                return Task.CompletedTask;
+            });
+        });
+
+        var app = builder.Build();
+
+        if (app.Environment.IsDevelopment())
+        {
+            app.MapOpenApi("/openapi/{documentName}.json");
+        }
+
+        app.MapGet("/api/ping", () => Results.Ok(new { Message = "pong", Utc = DateTime.UtcNow }))
+            .WithGroupName("npmjs-demo")
+            .WithName("Ping")
+            .WithSummary("Simple ping endpoint for OpenAPI demo");
+
+        if (app.Environment.IsDevelopment())
+        {
+            app.MapStoplightElements(options =>
+            {
+                options.RoutePrefix = "/api-docs";
+                options.Documents.Clear();
+                options.Documents.Add(new StoplightElementsDocumentOptions
+                {
+                    Name = "npmjs demo",
+                    DocumentTitle = "Stoplight npmjs Demo Docs",
+                    ApiDescriptionUrl = "/openapi/npmjs-demo.json"
+                });
+            });
+        }
+
+        app.Run();
+    }
+}
